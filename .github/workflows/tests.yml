@@ -33,7 +33,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.41.1
-          working-directory: ${{ env.BRANCH }}
+          working-directory: .
 
   tests_by_makefile:
     runs-on: ubuntu-latest
