@@ -6,6 +6,8 @@ import (
 	"io"
 
 	"github.com/jmoiron/sqlx"
+	// postgresql driver.
+	_ "github.com/lib/pq"
 )
 
 type Postgres struct {

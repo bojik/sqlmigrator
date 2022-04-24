@@ -5,10 +5,12 @@ package migrator
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"testing"
 
+	"github.com/jmoiron/sqlx"
+	// postgresql driver.
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,8 +30,26 @@ func TestMigrator_ApplyDownSqlMigration(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestMigratorResult(t *testing.T) {
+	db, err := sqlx.Open("postgres", Dsn)
+	rows, err := db.Query("select test from test")
+	require.Nil(t, err)
+	defer func() {
+		_ = rows.Close()
+		_ = rows.Err()
+	}()
+	r := []string{}
+	for rows.Next() {
+		var v string
+		err := rows.Scan(&v)
+		require.Nil(t, err)
+		r = append(r, v)
+	}
+	require.Len(t, r, 3)
+}
+
 func TestFindFiles(t *testing.T) {
 	files, err := findFiles(migrationDir, ".up.sql")
 	require.Nil(t, err)
-	fmt.Println(files)
+	require.Len(t, files, 5)
 }
