@@ -39,3 +39,9 @@ jobs:
 
       - name: make test
         run: make test
+
+      - name: Start containers
+        run: docker-compose -f "docker-compose.yml" up -d --build
+
+      - name: make test-integration
+        run: make test-integration
