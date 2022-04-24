@@ -1,0 +1,3 @@
+dsn: "dsn"
+path: "./migrations"
+type: "sql"

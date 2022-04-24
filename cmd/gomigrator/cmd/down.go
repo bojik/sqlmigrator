@@ -1,40 +1,43 @@
-/*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
-	"fmt"
+	"context"
 
+	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
 
-// downCmd represents the down command
+// downCmd represents the down command.
 var downCmd = &cobra.Command{
 	Use:   "down",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Down migrations",
+	Long:  `Down migrations`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("down called")
+		if err := loadConfigData(cmd); err != nil {
+			cmd.PrintErrln(err.Error())
+			return
+		}
+		m := migrator.New(cmd.OutOrStdout())
+		dsn, err := cmd.Flags().GetString(FlagDsn)
+		if err != nil {
+			cmd.PrintErrln(err.Error())
+			return
+		}
+		dir, err := cmd.Flags().GetString(FlagPath)
+		if err != nil {
+			cmd.PrintErrln(err.Error())
+			return
+		}
+		if err := m.ApplyDownSQLMigration(context.Background(), dsn, dir); err != nil {
+			cmd.PrintErrln(err.Error())
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(downCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// downCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// downCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	addConfigFlag(downCmd)
+	addPathFlag(downCmd)
+	addDsnFlag(downCmd)
+	addTypeFlag(downCmd)
 }

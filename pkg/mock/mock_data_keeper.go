@@ -48,10 +48,24 @@ func (mr *MockDataKeeperMockRecorder) CreateMigratorTable() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMigratorTable", reflect.TypeOf((*MockDataKeeper)(nil).CreateMigratorTable))
 }
 
-// ExecSql mocks base method.
-func (m *MockDataKeeper) ExecSql(arg0 string) error {
+// DeleteById mocks base method.
+func (m *MockDataKeeper) DeleteByID(arg0 int) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecSql", arg0)
+	ret := m.ctrl.Call(m, "DeleteByID", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteById indicates an expected call of DeleteById.
+func (mr *MockDataKeeperMockRecorder) DeleteById(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByID", reflect.TypeOf((*MockDataKeeper)(nil).DeleteByID), arg0)
+}
+
+// ExecSql mocks base method.
+func (m *MockDataKeeper) ExecSQL(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecSQL", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -59,7 +73,22 @@ func (m *MockDataKeeper) ExecSql(arg0 string) error {
 // ExecSql indicates an expected call of ExecSql.
 func (mr *MockDataKeeperMockRecorder) ExecSql(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSql", reflect.TypeOf((*MockDataKeeper)(nil).ExecSql), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSQL", reflect.TypeOf((*MockDataKeeper)(nil).ExecSQL), arg0)
+}
+
+// FindLastVersion mocks base method.
+func (m *MockDataKeeper) FindLastVersion() (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindLastVersion")
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindLastVersion indicates an expected call of FindLastVersion.
+func (mr *MockDataKeeperMockRecorder) FindLastVersion() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindLastVersion", reflect.TypeOf((*MockDataKeeper)(nil).FindLastVersion))
 }
 
 // FindNewMigrations mocks base method.
@@ -75,6 +104,36 @@ func (m *MockDataKeeper) FindNewMigrations(arg0 []int) ([]int, error) {
 func (mr *MockDataKeeperMockRecorder) FindNewMigrations(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindNewMigrations", reflect.TypeOf((*MockDataKeeper)(nil).FindNewMigrations), arg0)
+}
+
+// FindVersionStatusById mocks base method.
+func (m *MockDataKeeper) FindVersionStatusByID(arg0 int) (db.Status, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindVersionStatusByID", arg0)
+	ret0, _ := ret[0].(db.Status)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindVersionStatusById indicates an expected call of FindVersionStatusById.
+func (mr *MockDataKeeperMockRecorder) FindVersionStatusById(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVersionStatusByID", reflect.TypeOf((*MockDataKeeper)(nil).FindVersionStatusByID), arg0)
+}
+
+// GetVersionsByStatus mocks base method.
+func (m *MockDataKeeper) GetVersionsByStatus(arg0 db.Status) ([]int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVersionsByStatus", arg0)
+	ret0, _ := ret[0].([]int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVersionsByStatus indicates an expected call of GetVersionsByStatus.
+func (mr *MockDataKeeperMockRecorder) GetVersionsByStatus(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersionsByStatus", reflect.TypeOf((*MockDataKeeper)(nil).GetVersionsByStatus), arg0)
 }
 
 // SelectVersionRow mocks base method.

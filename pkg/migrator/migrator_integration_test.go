@@ -1,3 +1,5 @@
+//go:build integration
+
 package migrator
 
 import (
@@ -15,7 +17,13 @@ var migrationDir = path.Join(testDataDir, "migrations")
 
 func TestMigrator_ApplyUpSqlMigration(t *testing.T) {
 	migrator := New(newEmptyLogger())
-	err := migrator.ApplyUpSqlMigration(context.Background(), Dsn, migrationDir)
+	err := migrator.ApplyUpSQLMigration(context.Background(), Dsn, migrationDir)
+	require.Nil(t, err)
+}
+
+func TestMigrator_ApplyDownSqlMigration(t *testing.T) {
+	migrator := New(newEmptyLogger())
+	err := migrator.ApplyDownSQLMigration(context.Background(), Dsn, migrationDir)
 	require.Nil(t, err)
 }
 
