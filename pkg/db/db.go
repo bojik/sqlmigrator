@@ -1,13 +1,21 @@
 package db
 
+import "time"
+
 type Status int
 
 //go:generate stringer -type=Status
 const (
-	New Status = iota + 1
+	Processing Status = iota + 1
 	Success
 	Error
 )
+
+type Row struct {
+	Version int
+	Status
+	ExecutedAt time.Time
+}
 
 //nolint:lll
 //go:generate mockgen -destination=../mock/mock_data_keeper.go -package=mock github.com/bojik/sqlmigrator/pkg/db DataKeeper
@@ -15,10 +23,11 @@ type DataKeeper interface {
 	CreateMigratorTable() error
 	GetVersionsByStatus(Status) ([]int, error)
 	FindNewMigrations(versions []int) ([]int, error)
-	FindVersionStatusByID(version int) (Status, error)
+	FindVersionStatusByVersion(version int) (Status, error)
 	FindLastVersion() (int, error)
-	DeleteByID(version int) error
+	DeleteByVersion(version int) error
 	SelectVersionRow(int) (VersionRow, error)
+	SelectRows() ([]Row, error)
 	ExecSQL(sql string) error
 }
 

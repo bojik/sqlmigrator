@@ -72,7 +72,7 @@ func TestMigrationUp(t *testing.T) {
 	dir := testDataDir
 	up, down, err := migrator.CreateSQLMigration(dir, "")
 	require.Nil(t, err)
-	err1 := ioutil.WriteFile(up, []byte("create table test(id serial primary key, test varchar);"), 0o600)
+	err1 := ioutil.WriteFile(up, []byte("create table test(version serial primary key, test varchar);"), 0o600)
 	require.Nil(t, err1)
 	defer func() {
 		_ = os.Remove(up)
@@ -86,14 +86,21 @@ func TestMigrationUp(t *testing.T) {
 	require.Nil(t, err4)
 	dk.EXPECT().CreateMigratorTable().Return(nil)
 	dk.EXPECT().GetVersionsByStatus(db.Error).Return([]int{}, nil)
-	dk.EXPECT().FindNewMigrations([]int{tasks[0].id}).Return([]int{}, nil)
-	dk.EXPECT().SelectVersionRow(tasks[0].id).Return(vr, nil)
+	dk.EXPECT().FindNewMigrations([]int{tasks[0].version}).Return([]int{}, nil)
+	dk.EXPECT().SelectVersionRow(tasks[0].version).Return(vr, nil)
 	vr.EXPECT().Insert().Return(nil)
-	dk.EXPECT().ExecSql(`create table test(id serial primary key, test varchar);`).Return(nil)
+	dk.EXPECT().ExecSQL(`create table test(version serial primary key, test varchar);`).Return(nil)
 	vr.EXPECT().CommitSuccess().Return(nil)
 	vr.EXPECT().Close()
-	err3 := migrator.migrateUp(dk, dir)
+	res, err3 := migrator.migrateUp(dk, dir)
 	require.Nil(t, err3)
+	require.Len(t, res, 1)
+	require.Equal(t, `create table test(version serial primary key, test varchar);`, res[0].SQL)
+	require.Nil(t, res[0].Err)
+	require.Equal(t, db.Success, res[0].Status)
+	require.Equal(t, tasks[0].version, res[0].Version)
+	require.Equal(t, Up, res[0].Type)
+	require.Equal(t, up, res[0].File)
 }
 
 func TestMigrationDown(t *testing.T) {
@@ -103,7 +110,7 @@ func TestMigrationDown(t *testing.T) {
 	dir := testDataDir
 	up, down, err := migrator.CreateSQLMigration(dir, "")
 	require.Nil(t, err)
-	err1 := ioutil.WriteFile(up, []byte("create table test(id serial primary key, test varchar);"), 0o600)
+	err1 := ioutil.WriteFile(up, []byte("create table test(version serial primary key, test varchar);"), 0o600)
 	require.Nil(t, err1)
 	defer func() {
 		_ = os.Remove(up)
@@ -113,13 +120,21 @@ func TestMigrationDown(t *testing.T) {
 	defer func() {
 		_ = os.Remove(down)
 	}()
-	id := getIDByFilename(path.Base(down))
+	id := getVersionByFilename(path.Base(down))
+	dk.EXPECT().CreateMigratorTable().Return(nil)
 	dk.EXPECT().FindLastVersion().Return(id, nil)
-	dk.EXPECT().FindVersionStatusById(id).Return(db.Success, nil)
-	dk.EXPECT().ExecSql("drop table test;").Return(nil)
-	dk.EXPECT().DeleteById(id).Return(nil)
-	err3 := migrator.migrateDown(dk, dir)
+	dk.EXPECT().FindVersionStatusByVersion(id).Return(db.Success, nil)
+	dk.EXPECT().ExecSQL("drop table test;").Return(nil)
+	dk.EXPECT().DeleteByVersion(id).Return(nil)
+	res, err3 := migrator.migrateDown(dk, dir)
 	require.Nil(t, err3)
+	require.Len(t, res, 1)
+	require.Equal(t, `drop table test;`, res[0].SQL)
+	require.Nil(t, res[0].Err)
+	require.Equal(t, db.Success, res[0].Status)
+	require.Equal(t, id, res[0].Version)
+	require.Equal(t, Down, res[0].Type)
+	require.Equal(t, down, res[0].File)
 }
 
 func TestMigrationDownWithError(t *testing.T) {
@@ -129,7 +144,7 @@ func TestMigrationDownWithError(t *testing.T) {
 	dir := testDataDir
 	up, down, err := migrator.CreateSQLMigration(dir, "")
 	require.Nil(t, err)
-	err1 := ioutil.WriteFile(up, []byte("create table test(id serial primary key, test varchar);"), 0o600)
+	err1 := ioutil.WriteFile(up, []byte("create table test(version serial primary key, test varchar);"), 0o600)
 	require.Nil(t, err1)
 	defer func() {
 		_ = os.Remove(up)
@@ -139,11 +154,12 @@ func TestMigrationDownWithError(t *testing.T) {
 	defer func() {
 		_ = os.Remove(down)
 	}()
-	id := getIDByFilename(path.Base(down))
+	id := getVersionByFilename(path.Base(down))
+	dk.EXPECT().CreateMigratorTable().Return(nil)
 	dk.EXPECT().FindLastVersion().Return(id, nil)
-	dk.EXPECT().FindVersionStatusById(id).Return(db.Error, nil)
-	dk.EXPECT().DeleteById(id).Return(nil)
-	err3 := migrator.migrateDown(dk, dir)
+	dk.EXPECT().FindVersionStatusByVersion(id).Return(db.Error, nil)
+	dk.EXPECT().DeleteByVersion(id).Return(nil)
+	_, err3 := migrator.migrateDown(dk, dir)
 	require.Nil(t, err3)
 }
 
@@ -154,7 +170,7 @@ func TestMigrationDownNotFoundRow(t *testing.T) {
 	dir := testDataDir
 	up, down, err := migrator.CreateSQLMigration(dir, "")
 	require.Nil(t, err)
-	err1 := ioutil.WriteFile(up, []byte("create table test(id serial primary key, test varchar);"), 0o600)
+	err1 := ioutil.WriteFile(up, []byte("create table test(version serial primary key, test varchar);"), 0o600)
 	require.Nil(t, err1)
 	defer func() {
 		_ = os.Remove(up)
@@ -164,10 +180,11 @@ func TestMigrationDownNotFoundRow(t *testing.T) {
 	defer func() {
 		_ = os.Remove(down)
 	}()
-	id := getIDByFilename(path.Base(down))
+	id := getVersionByFilename(path.Base(down))
+	dk.EXPECT().CreateMigratorTable()
 	dk.EXPECT().FindLastVersion().Return(id, nil)
-	dk.EXPECT().FindVersionStatusById(id).Return(db.Status(0), nil)
-	err3 := migrator.migrateDown(dk, dir)
+	dk.EXPECT().FindVersionStatusByVersion(id).Return(db.Status(0), nil)
+	_, err3 := migrator.migrateDown(dk, dir)
 	require.ErrorIs(t, err3, ErrVersionHasNotBeenFound)
 }
 
@@ -179,7 +196,7 @@ func TestMigrationUpError(t *testing.T) {
 	dir := testDataDir
 	up, down, err := migrator.CreateSQLMigration(dir, "")
 	require.Nil(t, err)
-	err1 := ioutil.WriteFile(up, []byte("create table test(id serial primary key, test varchar);"), 0o600)
+	err1 := ioutil.WriteFile(up, []byte("create table test(version serial primary key, test varchar);"), 0o600)
 	require.Nil(t, err1)
 	defer func() {
 		_ = os.Remove(up)
@@ -193,20 +210,71 @@ func TestMigrationUpError(t *testing.T) {
 	require.Nil(t, err4)
 	dk.EXPECT().CreateMigratorTable().Return(nil)
 	dk.EXPECT().GetVersionsByStatus(db.Error).Return([]int{}, nil)
-	dk.EXPECT().FindNewMigrations([]int{tasks[0].id}).Return([]int{}, nil)
-	dk.EXPECT().SelectVersionRow(tasks[0].id).Return(vr, nil)
+	dk.EXPECT().FindNewMigrations([]int{tasks[0].version}).Return([]int{}, nil)
+	dk.EXPECT().SelectVersionRow(tasks[0].version).Return(vr, nil)
 	vr.EXPECT().Insert().Return(nil)
 	sqlErr := errors.New("some sql error")
-	dk.EXPECT().ExecSql(`create table test(id serial primary key, test varchar);`).Return(sqlErr)
+	dk.EXPECT().ExecSQL(`create table test(version serial primary key, test varchar);`).Return(sqlErr)
 	vr.EXPECT().CommitError().Return(nil)
 	vr.EXPECT().Close()
-	err3 := migrator.migrateUp(dk, dir)
-	//nolint:errorlint
-	mErr, ok := err3.(MigrationError)
-	require.True(t, ok)
-	require.ErrorIs(t, mErr.Err, sqlErr)
-	require.Equal(t, mErr.File, up)
-	require.Equal(t, mErr.SQL, `create table test(id serial primary key, test varchar);`)
+	res, err3 := migrator.migrateUp(dk, dir)
+	require.Nil(t, err3)
+	require.Len(t, res, 1)
+	require.Equal(t, `create table test(version serial primary key, test varchar);`, res[0].SQL)
+	require.Equal(t, sqlErr, res[0].Err)
+	require.Equal(t, db.Error, res[0].Status)
+	require.Equal(t, tasks[0].version, res[0].Version)
+	require.Equal(t, Up, res[0].Type)
+}
+
+func TestMigratorRedo(t *testing.T) {
+	mc := gomock.NewController(t)
+	dk := mock.NewMockDataKeeper(mc)
+	vr := mock.NewMockVersionRow(mc)
+	migrator := New(newEmptyLogger())
+	dir := testDataDir
+	up, down, err := migrator.CreateSQLMigration(dir, "")
+	require.Nil(t, err)
+	err1 := ioutil.WriteFile(up, []byte("create table test(version serial primary key, test varchar);"), 0o600)
+	require.Nil(t, err1)
+	defer func() {
+		_ = os.Remove(up)
+	}()
+	err2 := ioutil.WriteFile(down, []byte("drop table test;"), 0o600)
+	require.Nil(t, err2)
+	defer func() {
+		_ = os.Remove(down)
+	}()
+	id := getVersionByFilename(path.Base(down))
+	dk.EXPECT().CreateMigratorTable().Return(nil)
+	dk.EXPECT().FindLastVersion().Return(id, nil)
+	dk.EXPECT().FindVersionStatusByVersion(id).Return(db.Success, nil)
+	dk.EXPECT().ExecSQL("drop table test;").Return(nil)
+	dk.EXPECT().DeleteByVersion(id).Return(nil)
+	dk.EXPECT().CreateMigratorTable().Return(nil)
+	dk.EXPECT().GetVersionsByStatus(db.Error).Return([]int{}, nil)
+	dk.EXPECT().FindNewMigrations([]int{id}).Return([]int{}, nil)
+	dk.EXPECT().SelectVersionRow(id).Return(vr, nil)
+	vr.EXPECT().Insert().Return(nil)
+	dk.EXPECT().ExecSQL(`create table test(version serial primary key, test varchar);`).Return(nil)
+	vr.EXPECT().CommitSuccess().Return(nil)
+	vr.EXPECT().Close()
+	res, err3 := migrator.migrateRedo(dk, dir)
+	require.Nil(t, err3)
+	require.Len(t, res, 2)
+	require.Equal(t, `drop table test;`, res[0].SQL)
+	require.Nil(t, res[0].Err)
+	require.Equal(t, db.Success, res[0].Status)
+	require.Equal(t, id, res[0].Version)
+	require.Equal(t, Down, res[0].Type)
+	require.Equal(t, down, res[0].File)
+
+	require.Equal(t, `create table test(version serial primary key, test varchar);`, res[1].SQL)
+	require.Nil(t, res[1].Err)
+	require.Equal(t, db.Success, res[1].Status)
+	require.Equal(t, id, res[1].Version)
+	require.Equal(t, Up, res[1].Type)
+	require.Equal(t, up, res[1].File)
 }
 
 func newEmptyLogger() *emptyLogger {

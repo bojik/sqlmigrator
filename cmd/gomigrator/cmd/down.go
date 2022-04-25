@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/bojik/sqlmigrator/internal/config"
 	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
@@ -18,18 +20,12 @@ var downCmd = &cobra.Command{
 			return
 		}
 		m := migrator.New(cmd.OutOrStdout())
-		dsn, err := cmd.Flags().GetString(FlagDsn)
-		if err != nil {
-			cmd.PrintErrln(err.Error())
-			return
+		results, err1 := m.ApplyDownSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
+		if err1 != nil {
+			cmd.PrintErrln(err1.Error())
 		}
-		dir, err := cmd.Flags().GetString(FlagPath)
-		if err != nil {
-			cmd.PrintErrln(err.Error())
-			return
-		}
-		if err := m.ApplyDownSQLMigration(context.Background(), dsn, dir); err != nil {
-			cmd.PrintErrln(err.Error())
+		for _, result := range results {
+			cmd.Println(fmt.Sprintf("%d|%s", result.Version, result.Status.String()))
 		}
 	},
 }

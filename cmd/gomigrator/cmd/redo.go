@@ -1,3 +1,7 @@
+/*
+Copyright © 2022 NAME HERE <EMAIL ADDRESS>
+
+*/
 package cmd
 
 import (
@@ -9,18 +13,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// upCmd represents the up command.
-var upCmd = &cobra.Command{
-	Use:   "up",
-	Short: "Apply migrations",
-	Long:  `Apply migrations`,
+// redoCmd represents the redo command.
+var redoCmd = &cobra.Command{
+	Use:   "redo",
+	Short: "Redo last migration",
+	Long:  `Redo last migration`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := loadConfigData(cmd); err != nil {
 			cmd.PrintErrln(err.Error())
 			return
 		}
 		m := migrator.New(cmd.OutOrStdout())
-		results, err := m.ApplyUpSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
+		results, err := m.ApplyRedoSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
 		if err != nil {
 			cmd.PrintErrln(err.Error())
 		}
@@ -31,9 +35,9 @@ var upCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(upCmd)
-	addConfigFlag(upCmd)
-	addPathFlag(upCmd)
-	addDsnFlag(upCmd)
-	addTypeFlag(upCmd)
+	rootCmd.AddCommand(redoCmd)
+	addConfigFlag(redoCmd)
+	addPathFlag(redoCmd)
+	addDsnFlag(redoCmd)
+	addTypeFlag(redoCmd)
 }

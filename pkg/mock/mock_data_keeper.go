@@ -48,21 +48,21 @@ func (mr *MockDataKeeperMockRecorder) CreateMigratorTable() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMigratorTable", reflect.TypeOf((*MockDataKeeper)(nil).CreateMigratorTable))
 }
 
-// DeleteById mocks base method.
-func (m *MockDataKeeper) DeleteByID(arg0 int) error {
+// DeleteByVersion mocks base method.
+func (m *MockDataKeeper) DeleteByVersion(arg0 int) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteByID", arg0)
+	ret := m.ctrl.Call(m, "DeleteByVersion", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteById indicates an expected call of DeleteById.
-func (mr *MockDataKeeperMockRecorder) DeleteById(arg0 interface{}) *gomock.Call {
+// DeleteByVersion indicates an expected call of DeleteByVersion.
+func (mr *MockDataKeeperMockRecorder) DeleteByVersion(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByID", reflect.TypeOf((*MockDataKeeper)(nil).DeleteByID), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByVersion", reflect.TypeOf((*MockDataKeeper)(nil).DeleteByVersion), arg0)
 }
 
-// ExecSql mocks base method.
+// ExecSQL mocks base method.
 func (m *MockDataKeeper) ExecSQL(arg0 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ExecSQL", arg0)
@@ -70,8 +70,8 @@ func (m *MockDataKeeper) ExecSQL(arg0 string) error {
 	return ret0
 }
 
-// ExecSql indicates an expected call of ExecSql.
-func (mr *MockDataKeeperMockRecorder) ExecSql(arg0 interface{}) *gomock.Call {
+// ExecSQL indicates an expected call of ExecSQL.
+func (mr *MockDataKeeperMockRecorder) ExecSQL(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSQL", reflect.TypeOf((*MockDataKeeper)(nil).ExecSQL), arg0)
 }
@@ -106,19 +106,19 @@ func (mr *MockDataKeeperMockRecorder) FindNewMigrations(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindNewMigrations", reflect.TypeOf((*MockDataKeeper)(nil).FindNewMigrations), arg0)
 }
 
-// FindVersionStatusById mocks base method.
-func (m *MockDataKeeper) FindVersionStatusByID(arg0 int) (db.Status, error) {
+// FindVersionStatusByVersion mocks base method.
+func (m *MockDataKeeper) FindVersionStatusByVersion(arg0 int) (db.Status, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindVersionStatusByID", arg0)
+	ret := m.ctrl.Call(m, "FindVersionStatusByVersion", arg0)
 	ret0, _ := ret[0].(db.Status)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FindVersionStatusById indicates an expected call of FindVersionStatusById.
-func (mr *MockDataKeeperMockRecorder) FindVersionStatusById(arg0 interface{}) *gomock.Call {
+// FindVersionStatusByVersion indicates an expected call of FindVersionStatusByVersion.
+func (mr *MockDataKeeperMockRecorder) FindVersionStatusByVersion(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVersionStatusByID", reflect.TypeOf((*MockDataKeeper)(nil).FindVersionStatusByID), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVersionStatusByVersion", reflect.TypeOf((*MockDataKeeper)(nil).FindVersionStatusByVersion), arg0)
 }
 
 // GetVersionsByStatus mocks base method.
@@ -134,6 +134,21 @@ func (m *MockDataKeeper) GetVersionsByStatus(arg0 db.Status) ([]int, error) {
 func (mr *MockDataKeeperMockRecorder) GetVersionsByStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVersionsByStatus", reflect.TypeOf((*MockDataKeeper)(nil).GetVersionsByStatus), arg0)
+}
+
+// SelectRows mocks base method.
+func (m *MockDataKeeper) SelectRows() ([]db.Row, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SelectRows")
+	ret0, _ := ret[0].([]db.Row)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SelectRows indicates an expected call of SelectRows.
+func (mr *MockDataKeeperMockRecorder) SelectRows() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SelectRows", reflect.TypeOf((*MockDataKeeper)(nil).SelectRows))
 }
 
 // SelectVersionRow mocks base method.
