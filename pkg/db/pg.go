@@ -31,7 +31,7 @@ const (
 			comment on column dbmigrator_version.version is 'migration id';
 			comment on column dbmigrator_version.status is '1 - new, 2 - successful finished, 3 - executed with error';
 			comment on column dbmigrator_version.executed_at is 'date of the last executing attempt';`
-	SQLSelectNewMigrations = `select version from dbmigrator_version where version in (?) and status <> ?`
+	SQLSelectNewMigrations = `select version from dbmigrator_version where version in (?) and status = ? for update`
 	SQLInsert              = `insert into dbmigrator_version(version, status) values(:id, :status) on conflict do nothing`
 	SQLSelectLock          = `select version from dbmigrator_version where version = :id for update`
 	SQLUpdateStatus        = `update dbmigrator_version set status = :status, executed_at = current_timestamp where version = :id`
@@ -39,7 +39,7 @@ const (
 	SQLSelectStatusByID    = `select status from dbmigrator_version where version = :version`
 	SQLSelectLastVersion   = `select version from dbmigrator_version where executed_at = (select max(executed_at) from dbmigrator_version)`
 	SQLDeleteByID          = `delete from dbmigrator_version where version = :version`
-	SQLSelectAll           = `select version, status, executed_at from dbmigrator_version order by executed_at`
+	SQLSelectAll           = `select version, status, COALESCE(executed_at, now()) from dbmigrator_version order by executed_at`
 )
 
 func (p *Postgres) Connect(dsn string) error {
@@ -177,6 +177,9 @@ func (p *Postgres) SelectRows() ([]Row, error) {
 		if err := rows.Scan(&r.Version, &r.Status, &r.ExecutedAt); err != nil {
 			return nil, err
 		}
+		if r.Status == Processing {
+			r.ExecutedAt = nil
+		}
 		res = append(res, r)
 	}
 	return res, nil
@@ -187,11 +190,12 @@ func (p *Postgres) writeLog(s string) {
 }
 
 type versionRow struct {
-	id int
-	tx *sqlx.Tx
+	id       int
+	tx       *sqlx.Tx
+	finished bool
 }
 
-func (v versionRow) CommitSuccess() error {
+func (v *versionRow) CommitSuccess() error {
 	if err := v.SetStatus(Success); err != nil {
 		return fmt.Errorf("status success: %w", err)
 	}
@@ -201,7 +205,7 @@ func (v versionRow) CommitSuccess() error {
 	return nil
 }
 
-func (v versionRow) CommitError() error {
+func (v *versionRow) CommitError() error {
 	if err := v.SetStatus(Error); err != nil {
 		return fmt.Errorf("status error: %w", err)
 	}
@@ -237,7 +241,7 @@ func (p *Postgres) GetVersionsByStatus(status Status) ([]int, error) {
 	return versions, nil
 }
 
-func (v versionRow) Insert() error {
+func (v *versionRow) Insert() error {
 	_, err := v.tx.NamedExec(SQLInsert, map[string]interface{}{"id": v.id, "status": Processing})
 	if err != nil {
 		return fmt.Errorf("init: %w", err)
@@ -249,24 +253,29 @@ func (v versionRow) Insert() error {
 	return nil
 }
 
-func (v versionRow) SetStatus(status Status) error {
+func (v *versionRow) SetStatus(status Status) error {
 	if _, err := v.tx.NamedExec(SQLUpdateStatus, map[string]interface{}{"id": v.id, "status": status}); err != nil {
 		return fmt.Errorf("update status: %w", err)
 	}
 	return nil
 }
 
-func (v versionRow) Commit() error {
+func (v *versionRow) Commit() error {
 	if err := v.tx.Commit(); err != nil {
 		return fmt.Errorf("commit version row: %w", err)
 	}
+	v.finished = true
 	return nil
 }
 
-func (v versionRow) Close() error {
+func (v *versionRow) Close() error {
+	if v.finished {
+		return nil
+	}
 	if err := v.tx.Rollback(); err != nil {
 		return fmt.Errorf("close version row: %w", err)
 	}
+	v.finished = true
 	return nil
 }
 

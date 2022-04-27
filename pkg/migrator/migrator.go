@@ -52,7 +52,7 @@ type Result struct {
 type ResultArchive struct {
 	Version    int
 	Status     db.Status
-	ExecutedAt time.Time
+	ExecutedAt *time.Time
 }
 
 type sqlTask struct {

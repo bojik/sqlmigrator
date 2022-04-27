@@ -14,7 +14,7 @@ const (
 type Row struct {
 	Version int
 	Status
-	ExecutedAt time.Time
+	ExecutedAt *time.Time
 }
 
 //nolint:lll
