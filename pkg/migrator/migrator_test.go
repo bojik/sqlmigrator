@@ -277,6 +277,16 @@ func TestMigratorRedo(t *testing.T) {
 	require.Equal(t, up, res[1].File)
 }
 
+func TestMigrator_SelectDbVersion(t *testing.T) {
+	mc := gomock.NewController(t)
+	dk := mock.NewMockDataKeeper(mc)
+	dk.EXPECT().FindLastVersion().Return(4, nil)
+	migrator := New(newEmptyLogger())
+	v, err := migrator.selectDBVersion(dk)
+	require.Nil(t, err)
+	require.Equal(t, 4, v)
+}
+
 func newEmptyLogger() *emptyLogger {
 	return &emptyLogger{}
 }

@@ -152,6 +152,30 @@ func (m *Migrator) SelectStatuses(ctx context.Context, dsn string) ([]*ResultArc
 	return m.selectStatuses(d)
 }
 
+func (m *Migrator) SelectDBVersionConnection(ctx context.Context, conn *sqlx.DB) (int, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.ConnectExternal(conn); err != nil {
+		return 0, fmt.Errorf("connect external: %w", err)
+	}
+	return m.selectDBVersion(d)
+}
+
+func (m *Migrator) SelectDBVersion(ctx context.Context, dsn string) (int, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.Connect(dsn); err != nil {
+		return 0, fmt.Errorf("connect external: %w", err)
+	}
+	return m.selectDBVersion(d)
+}
+
+func (m *Migrator) selectDBVersion(d db.DataKeeper) (int, error) {
+	version, err := d.FindLastVersion()
+	if err != nil {
+		return 0, err
+	}
+	return version, nil
+}
+
 func (m *Migrator) selectStatuses(d db.DataKeeper) ([]*ResultArchive, error) {
 	rows, err := d.SelectRows()
 	if err != nil {
