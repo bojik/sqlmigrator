@@ -20,7 +20,7 @@ var statusCmd = &cobra.Command{
 			cmd.PrintErrln(err.Error())
 			return
 		}
-		m := migrator.New(cmd.OutOrStdout())
+		m := migrator.New(getLogger(cmd))
 		rows, err2 := m.SelectStatuses(context.Background(), config.GetDsn())
 		if err2 != nil {
 			cmd.PrintErrln(err2.Error())

@@ -18,7 +18,7 @@ var createCmd = &cobra.Command{
 			cmd.PrintErrln(err.Error())
 			return
 		}
-		mig := migrator.New(cmd.OutOrStdout())
+		mig := migrator.New(getLogger(cmd))
 		if config.GetType() == config.FormatSQL.String() {
 			up, down, err := mig.CreateSQLMigration(config.GetPath(), strings.Join(args, "_"))
 			if err != nil {

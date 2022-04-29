@@ -19,7 +19,7 @@ var downCmd = &cobra.Command{
 			cmd.PrintErrln(err.Error())
 			return
 		}
-		m := migrator.New(cmd.OutOrStdout())
+		m := migrator.New(getLogger(cmd))
 		results, err1 := m.ApplyDownSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
 		if err1 != nil {
 			cmd.PrintErrln(err1.Error())

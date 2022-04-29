@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"io"
 	"os"
 
 	"github.com/bojik/sqlmigrator/internal/config"
@@ -9,10 +10,11 @@ import (
 )
 
 const (
-	FlagConfig = "config"
-	FlagFormat = config.KeyFormat
-	FlagPath   = config.KeyPath
-	FlagDsn    = config.KeyDsn
+	FlagConfig  = "config"
+	FlagVerbose = "verbose"
+	FlagFormat  = config.KeyFormat
+	FlagPath    = config.KeyPath
+	FlagDsn     = config.KeyDsn
 )
 
 func loadConfigData(cmd *cobra.Command) error {
@@ -36,6 +38,18 @@ func loadConfigData(cmd *cobra.Command) error {
 		}
 	}
 	return nil
+}
+
+func getLogger(cmd *cobra.Command) io.Writer {
+	empty := emptyWriter{}
+	b, err := cmd.Flags().GetBool(FlagVerbose)
+	if err != nil {
+		return empty
+	}
+	if b {
+		return cmd.OutOrStdout()
+	}
+	return empty
 }
 
 func addConfigFlag(command *cobra.Command) {
@@ -63,3 +77,11 @@ func addDsnFlag(command *cobra.Command) {
 		"DSN to database",
 	)
 }
+
+type emptyWriter struct{}
+
+func (emptyWriter) Write([]byte) (n int, err error) {
+	return 0, nil
+}
+
+var _ io.Writer = (*emptyWriter)(nil)

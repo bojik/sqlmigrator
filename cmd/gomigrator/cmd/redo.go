@@ -23,7 +23,7 @@ var redoCmd = &cobra.Command{
 			cmd.PrintErrln(err.Error())
 			return
 		}
-		m := migrator.New(cmd.OutOrStdout())
+		m := migrator.New(getLogger(cmd))
 		results, err := m.ApplyRedoSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
 		if err != nil {
 			cmd.PrintErrln(err.Error())

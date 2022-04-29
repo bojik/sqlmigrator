@@ -18,7 +18,7 @@ var dbversionCmd = &cobra.Command{
 			cmd.PrintErrln(err.Error())
 			return
 		}
-		m := migrator.New(cmd.OutOrStdout())
+		m := migrator.New(getLogger(cmd))
 		version, err := m.SelectDBVersion(context.Background(), config.GetDsn())
 		if err != nil {
 			cmd.PrintErrln(err.Error())

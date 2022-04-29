@@ -91,7 +91,7 @@ func (m *Migrator) CreateSQLMigration(dir, suffix string) (string, string, error
 func (m *Migrator) ApplyUpSQLMigrationConnection(ctx context.Context, conn *sqlx.DB, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.ConnectExternal(conn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 	return m.migrateUp(d, dir)
 }
@@ -99,15 +99,18 @@ func (m *Migrator) ApplyUpSQLMigrationConnection(ctx context.Context, conn *sqlx
 func (m *Migrator) ApplyUpSQLMigration(ctx context.Context, dsn, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.Connect(dsn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
+	defer func() {
+		_ = d.Close()
+	}()
 	return m.migrateUp(d, dir)
 }
 
 func (m *Migrator) ApplyDownSQLMigrationConnection(ctx context.Context, conn *sqlx.DB, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.ConnectExternal(conn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 	return m.migrateDown(d, dir)
 }
@@ -115,15 +118,18 @@ func (m *Migrator) ApplyDownSQLMigrationConnection(ctx context.Context, conn *sq
 func (m *Migrator) ApplyDownSQLMigration(ctx context.Context, dsn, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.Connect(dsn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
+	defer func() {
+		_ = d.Close()
+	}()
 	return m.migrateDown(d, dir)
 }
 
 func (m *Migrator) ApplyRedoSQLMigrationConnection(ctx context.Context, conn *sqlx.DB, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.ConnectExternal(conn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 	return m.migrateRedo(d, dir)
 }
@@ -131,15 +137,18 @@ func (m *Migrator) ApplyRedoSQLMigrationConnection(ctx context.Context, conn *sq
 func (m *Migrator) ApplyRedoSQLMigration(ctx context.Context, dsn, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.Connect(dsn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
+	defer func() {
+		_ = d.Close()
+	}()
 	return m.migrateRedo(d, dir)
 }
 
 func (m *Migrator) SelectStatusesConnection(ctx context.Context, conn *sqlx.DB) ([]*ResultArchive, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.ConnectExternal(conn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 	return m.selectStatuses(d)
 }
@@ -147,15 +156,18 @@ func (m *Migrator) SelectStatusesConnection(ctx context.Context, conn *sqlx.DB) 
 func (m *Migrator) SelectStatuses(ctx context.Context, dsn string) ([]*ResultArchive, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.Connect(dsn); err != nil {
-		return nil, fmt.Errorf("connect external: %w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
+	defer func() {
+		_ = d.Close()
+	}()
 	return m.selectStatuses(d)
 }
 
 func (m *Migrator) SelectDBVersionConnection(ctx context.Context, conn *sqlx.DB) (int, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.ConnectExternal(conn); err != nil {
-		return 0, fmt.Errorf("connect external: %w", err)
+		return 0, fmt.Errorf("db: %w", err)
 	}
 	return m.selectDBVersion(d)
 }
@@ -163,8 +175,11 @@ func (m *Migrator) SelectDBVersionConnection(ctx context.Context, conn *sqlx.DB)
 func (m *Migrator) SelectDBVersion(ctx context.Context, dsn string) (int, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.Connect(dsn); err != nil {
-		return 0, fmt.Errorf("connect external: %w", err)
+		return 0, fmt.Errorf("db: %w", err)
 	}
+	defer func() {
+		_ = d.Close()
+	}()
 	return m.selectDBVersion(d)
 }
 
@@ -487,7 +502,7 @@ func validateDir(dir string) error {
 }
 
 func (m *Migrator) writeLog(s string) {
-	_, _ = m.logWriter.Write([]byte(s + "\n"))
+	_, _ = m.logWriter.Write([]byte(">" + s + "\n"))
 }
 
 func findFiles(dir, suffix string) ([]string, error) {

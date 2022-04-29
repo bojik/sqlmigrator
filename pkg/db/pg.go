@@ -49,7 +49,7 @@ func (p *Postgres) Connect(dsn string) error {
 		return fmt.Errorf("open connect: %w", err)
 	}
 	if err := p.ConnectExternal(d); err != nil {
-		return fmt.Errorf("connect external: %w", err)
+		return fmt.Errorf("connect: %w", err)
 	}
 	return nil
 }
@@ -63,6 +63,7 @@ func (p *Postgres) ConnectExternal(d *sqlx.DB) error {
 }
 
 func (p *Postgres) Close() error {
+	p.writeLog("closing db")
 	if err := p.db.Close(); err != nil {
 		return fmt.Errorf("close db: %w", err)
 	}
@@ -95,17 +96,17 @@ func (p *Postgres) FindNewMigrations(ids []int) ([]int, error) {
 }
 
 func (p *Postgres) CreateMigratorTable() error {
-	p.writeLog("executing: " + SQLCreateTable)
+	p.writeLog("sql: " + SQLCreateTable)
 	if _, err := p.db.ExecContext(p.ctx, SQLCreateTable); err != nil {
 		return fmt.Errorf("create table: %w", err)
 	}
 
-	p.writeLog("executing: " + SQLCreateTableIndex)
+	p.writeLog("sql: " + SQLCreateTableIndex)
 	if _, err := p.db.ExecContext(p.ctx, SQLCreateTableIndex); err != nil {
 		return err
 	}
 
-	p.writeLog("executing: " + SQLCreateTableComments)
+	p.writeLog("sql: " + SQLCreateTableComments)
 	if _, err := p.db.ExecContext(p.ctx, SQLCreateTableComments); err != nil {
 		return fmt.Errorf("comment on: %w", err)
 	}
@@ -121,6 +122,7 @@ func (p *Postgres) SelectVersionRow(id int) (VersionRow, error) {
 }
 
 func (p *Postgres) FindLastVersion() (int, error) {
+	p.writeLog("sql: " + SQLSelectLastVersion)
 	rows, err := p.db.QueryContext(p.ctx, SQLSelectLastVersion)
 	if err != nil {
 		return 0, err
@@ -139,6 +141,7 @@ func (p *Postgres) FindLastVersion() (int, error) {
 }
 
 func (p *Postgres) DeleteByVersion(version int) error {
+	p.writeLog("sql: " + SQLDeleteByID)
 	if _, err := p.db.NamedExecContext(p.ctx, SQLDeleteByID, map[string]interface{}{"version": version}); err != nil {
 		return err
 	}
@@ -146,6 +149,7 @@ func (p *Postgres) DeleteByVersion(version int) error {
 }
 
 func (p *Postgres) FindVersionStatusByVersion(version int) (Status, error) {
+	p.writeLog("sql: " + SQLSelectStatusByID)
 	rows, err := p.db.NamedQueryContext(p.ctx, SQLSelectStatusByID, map[string]interface{}{"version": version})
 	if err != nil {
 		return 0, err
@@ -163,6 +167,7 @@ func (p *Postgres) FindVersionStatusByVersion(version int) (Status, error) {
 }
 
 func (p *Postgres) SelectRows() ([]Row, error) {
+	p.writeLog("sql: " + SQLSelectAll)
 	rows, err := p.db.QueryContext(p.ctx, SQLSelectAll)
 	if err != nil {
 		return nil, err
@@ -186,7 +191,7 @@ func (p *Postgres) SelectRows() ([]Row, error) {
 }
 
 func (p *Postgres) writeLog(s string) {
-	_, _ = p.log.Write([]byte(s + "\n"))
+	_, _ = p.log.Write([]byte("> " + s + "\n"))
 }
 
 type versionRow struct {
@@ -216,6 +221,7 @@ func (v *versionRow) CommitError() error {
 }
 
 func (p *Postgres) ExecSQL(sql string) error {
+	p.writeLog("sql: " + sql)
 	if _, err := p.db.Exec(sql); err != nil {
 		return err
 	}
@@ -223,6 +229,7 @@ func (p *Postgres) ExecSQL(sql string) error {
 }
 
 func (p *Postgres) GetVersionsByStatus(status Status) ([]int, error) {
+	p.writeLog("sql: " + SQLSelectByStatus)
 	rows, err := p.db.NamedQueryContext(p.ctx, SQLSelectByStatus, map[string]interface{}{"status": status})
 	if err != nil {
 		return nil, err
