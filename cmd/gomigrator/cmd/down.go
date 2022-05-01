@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/bojik/sqlmigrator/internal/config"
@@ -20,7 +19,7 @@ var downCmd = &cobra.Command{
 			return
 		}
 		m := migrator.New(getLogger(cmd))
-		results, err1 := m.ApplyDownSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
+		results, err1 := m.ApplyDownSQLMigration(cmd.Context(), config.GetDsn(), config.GetPath())
 		if err1 != nil {
 			cmd.PrintErrln(err1.Error())
 		}

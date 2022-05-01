@@ -5,7 +5,6 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/bojik/sqlmigrator/internal/config"
@@ -24,7 +23,7 @@ var redoCmd = &cobra.Command{
 			return
 		}
 		m := migrator.New(getLogger(cmd))
-		results, err := m.ApplyRedoSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
+		results, err := m.ApplyRedoSQLMigration(cmd.Context(), config.GetDsn(), config.GetPath())
 		if err != nil {
 			cmd.PrintErrln(err.Error())
 		}

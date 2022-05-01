@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -21,7 +20,7 @@ var statusCmd = &cobra.Command{
 			return
 		}
 		m := migrator.New(getLogger(cmd))
-		rows, err2 := m.SelectStatuses(context.Background(), config.GetDsn())
+		rows, err2 := m.SelectStatuses(cmd.Context(), config.GetDsn())
 		if err2 != nil {
 			cmd.PrintErrln(err2.Error())
 			return

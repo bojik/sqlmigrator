@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-
 	"github.com/bojik/sqlmigrator/internal/config"
 	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
@@ -19,7 +17,7 @@ var dbversionCmd = &cobra.Command{
 			return
 		}
 		m := migrator.New(getLogger(cmd))
-		version, err := m.SelectDBVersion(context.Background(), config.GetDsn())
+		version, err := m.SelectDBVersion(cmd.Context(), config.GetDsn())
 		if err != nil {
 			cmd.PrintErrln(err.Error())
 			return

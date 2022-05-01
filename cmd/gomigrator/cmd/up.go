@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/bojik/sqlmigrator/internal/config"
@@ -20,7 +19,7 @@ var upCmd = &cobra.Command{
 			return
 		}
 		m := migrator.New(getLogger(cmd))
-		results, err := m.ApplyUpSQLMigration(context.Background(), config.GetDsn(), config.GetPath())
+		results, err := m.ApplyUpSQLMigration(cmd.Context(), config.GetDsn(), config.GetPath())
 		if err != nil {
 			cmd.PrintErrln(err.Error())
 		}
