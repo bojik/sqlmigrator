@@ -1,19 +1,25 @@
 package cmd
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-var (
-	release   = "UNKNOWN"
-	buildDate = "UNKNOWN"
-	gitHash   = "UNKNOWN"
-)
+//go:embed _release.txt
+var release string
 
+//go:embed _build_date.txt
+var buildDate string
+
+//go:embed _githash.txt
+var gitHash string
+
+//go:generate sh version.sh
 // versionCmd represents the version command.
 var versionCmd = &cobra.Command{
 	Use:   "version",
@@ -25,9 +31,9 @@ var versionCmd = &cobra.Command{
 			BuildDate string
 			GitHash   string
 		}{
-			Release:   release,
-			BuildDate: buildDate,
-			GitHash:   gitHash,
+			Release:   strings.TrimRight(release, "\n"),
+			BuildDate: strings.TrimRight(buildDate, "\n"),
+			GitHash:   strings.TrimRight(gitHash, "\n"),
 		}); err != nil {
 			fmt.Printf("error while decode version info: %v\n", err)
 		}

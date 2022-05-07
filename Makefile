@@ -1,7 +1,7 @@
 BIN := "./bin/gomigrator"
 
 GIT_HASH := $(shell git log --format="%h" -n 1)
-LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X main.gitHash=$(GIT_HASH)
+LDFLAGS := -X github.com/bojik/sqlmigrator/cmd/gomigrator/cmd.release="develop" -X github.com/bojik/sqlmigrator/cmd/gomigrator/cmd.buildDate=$(shell date -u +%Y-%m-%dT%H:%M:%S) -X github.com/bojik/sqlmigrator/cmd/gomigrator/cmd.gitHash=$(GIT_HASH)
 
 test:
 	go test -race -count 100 ./pkg/...
