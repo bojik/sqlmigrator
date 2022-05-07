@@ -3,7 +3,7 @@ package cmd
 import (
 	"strings"
 
-	"github.com/bojik/sqlmigrator/internal/config"
+	config2 "github.com/bojik/sqlmigrator/pkg/config"
 	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
@@ -19,14 +19,24 @@ var createCmd = &cobra.Command{
 			return
 		}
 		mig := migrator.New(getLogger(cmd))
-		if config.GetType() == config.FormatSQL.String() {
-			up, down, err := mig.CreateSQLMigration(config.GetPath(), strings.Join(args, "_"))
+		if config2.GetType() == config2.FormatSQL.String() {
+			up, down, err := mig.CreateSQLMigration(config2.GetPath(), strings.Join(args, "_"))
 			if err != nil {
 				cmd.PrintErrln(err.Error())
 				return
 			}
-			cmd.Printf("Creating up sql migration: %s\n", up)
-			cmd.Printf("Creating down sql migration: %s\n", down)
+			cmd.Printf("Created up sql migration: %s\n", up)
+			cmd.Printf("Created down sql migration: %s\n", down)
+			return
+		}
+		if config2.GetType() == config2.FormatGo.String() {
+			file, err := mig.CreateGoMigration(config2.GetPath(), strings.Join(args, "_"))
+			if err != nil {
+				cmd.PrintErrln(err.Error())
+				return
+			}
+			cmd.Printf("Created GO migration: %s\n", file)
+			return
 		}
 	},
 }

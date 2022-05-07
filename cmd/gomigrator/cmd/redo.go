@@ -5,9 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/bojik/sqlmigrator/internal/config"
+	"github.com/bojik/sqlmigrator/pkg/config"
 	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
@@ -27,9 +25,7 @@ var redoCmd = &cobra.Command{
 		if err != nil {
 			cmd.PrintErrln(err.Error())
 		}
-		for _, result := range results {
-			cmd.Println(fmt.Sprintf("%d|%s", result.Version, result.Status.String()))
-		}
+		cmd.Println(formatResults(results))
 	},
 }
 

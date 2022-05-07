@@ -2,19 +2,22 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
+	"strings"
 
-	"github.com/bojik/sqlmigrator/internal/config"
+	config2 "github.com/bojik/sqlmigrator/pkg/config"
+	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
 
 const (
 	FlagConfig  = "config"
 	FlagVerbose = "verbose"
-	FlagFormat  = config.KeyFormat
-	FlagPath    = config.KeyPath
-	FlagDsn     = config.KeyDsn
+	FlagFormat  = config2.KeyFormat
+	FlagPath    = config2.KeyPath
+	FlagDsn     = config2.KeyDsn
 )
 
 func loadConfigData(cmd *cobra.Command) error {
@@ -25,15 +28,15 @@ func loadConfigData(cmd *cobra.Command) error {
 	if _, err := os.Stat(configFile); err != nil {
 		configFile = ""
 	}
-	if err := config.Load(configFile, cmd.Flags()); err != nil {
+	if err := config2.Load(configFile, cmd.Flags()); err != nil {
 		return err
 	}
 	if typeFlag := cmd.Flags().Lookup(FlagFormat); typeFlag != nil {
 		v := typeFlag.Value.String()
-		if v != config.FormatGo.String() && v != config.FormatSQL.String() {
+		if v != config2.FormatGo.String() && v != config2.FormatSQL.String() {
 			return errors.New(
-				"invalid value of flag --" + FlagFormat + ". expected: " + config.FormatSQL.String() +
-					"|" + config.FormatGo.String(),
+				"invalid value of flag --" + FlagFormat + ". expected: " + config2.FormatSQL.String() +
+					"|" + config2.FormatGo.String(),
 			)
 		}
 	}
@@ -53,7 +56,7 @@ func getLogger(cmd *cobra.Command) io.Writer {
 }
 
 func addConfigFlag(command *cobra.Command) {
-	command.Flags().StringP(FlagConfig, "c", config.DefaultConfigFile, "Path to config file")
+	command.Flags().StringP(FlagConfig, "c", config2.DefaultConfigFile, "Path to config file")
 }
 
 func addPathFlag(command *cobra.Command) {
@@ -64,8 +67,8 @@ func addTypeFlag(command *cobra.Command) {
 	command.Flags().StringP(
 		FlagFormat,
 		"t",
-		config.FormatSQL.String(),
-		"Type of migration. Expected: "+config.FormatSQL.String()+"|"+config.FormatGo.String(),
+		config2.FormatSQL.String(),
+		"Type of migration. Expected: "+config2.FormatSQL.String()+"|"+config2.FormatGo.String(),
 	)
 }
 
@@ -85,3 +88,15 @@ func (emptyWriter) Write([]byte) (n int, err error) {
 }
 
 var _ io.Writer = (*emptyWriter)(nil)
+
+func formatResults(rs []*migrator.Result) string {
+	sb := &strings.Builder{}
+	for _, r := range rs {
+		sb.WriteString(formatResult(r))
+	}
+	return sb.String()
+}
+
+func formatResult(r *migrator.Result) string {
+	return fmt.Sprintf("Migration %s to version %d:\n%s\n", r.Type.String(), r.Version, r.SQL)
+}

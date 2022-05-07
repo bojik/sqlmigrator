@@ -21,10 +21,11 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	ctx, cancel := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer cancel()
 	if err := rootCmd.ExecuteContext(ctx); err != nil {
+		cancel()
 		os.Exit(1)
 	}
+	cancel()
 }
 
 func init() {

@@ -190,6 +190,10 @@ func (p *Postgres) SelectRows() ([]Row, error) {
 	return res, nil
 }
 
+func (p *Postgres) GetDB() *sqlx.DB {
+	return p.db
+}
+
 func (p *Postgres) writeLog(s string) {
 	_, _ = p.log.Write([]byte("> " + s + "\n"))
 }

@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/bojik/sqlmigrator/internal/config"
+	"github.com/bojik/sqlmigrator/pkg/config"
 	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
@@ -23,9 +21,7 @@ var downCmd = &cobra.Command{
 		if err1 != nil {
 			cmd.PrintErrln(err1.Error())
 		}
-		for _, result := range results {
-			cmd.Println(fmt.Sprintf("%d|%s", result.Version, result.Status.String()))
-		}
+		cmd.Println(formatResults(results))
 	},
 }
 

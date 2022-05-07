@@ -9,6 +9,7 @@ import (
 
 	db "github.com/bojik/sqlmigrator/pkg/db"
 	gomock "github.com/golang/mock/gomock"
+	sqlx "github.com/jmoiron/sqlx"
 )
 
 // MockDataKeeper is a mock of DataKeeper interface.
@@ -119,6 +120,20 @@ func (m *MockDataKeeper) FindVersionStatusByVersion(arg0 int) (db.Status, error)
 func (mr *MockDataKeeperMockRecorder) FindVersionStatusByVersion(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindVersionStatusByVersion", reflect.TypeOf((*MockDataKeeper)(nil).FindVersionStatusByVersion), arg0)
+}
+
+// GetDB mocks base method.
+func (m *MockDataKeeper) GetDB() *sqlx.DB {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDB")
+	ret0, _ := ret[0].(*sqlx.DB)
+	return ret0
+}
+
+// GetDB indicates an expected call of GetDB.
+func (mr *MockDataKeeperMockRecorder) GetDB() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDB", reflect.TypeOf((*MockDataKeeper)(nil).GetDB))
 }
 
 // GetVersionsByStatus mocks base method.

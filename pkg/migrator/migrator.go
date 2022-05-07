@@ -28,8 +28,11 @@ const (
 	SQLDownFileExtension = ".down" + SQLFileExtension
 )
 
+const GoFileExtension = ".go"
+
 type Type int
 
+//go:generate stringer -type=Type
 const (
 	Up Type = iota + 1
 	Down
@@ -88,6 +91,29 @@ func (m *Migrator) CreateSQLMigration(dir, suffix string) (string, string, error
 	return up, down, nil
 }
 
+func (m *Migrator) CreateGoMigration(dir, suffix string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := validateDir(dir); err != nil {
+		return "", err
+	}
+	filename, err := generateGoFilename(dir, suffix)
+	if err != nil {
+		return "", err
+	}
+	fp, err := os.Create(filename)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = fp.Close()
+	}()
+	if err := goTemplate.Execute(fp, struct{}{}); err != nil {
+		return "", err
+	}
+	return filename, nil
+}
+
 func (m *Migrator) ApplyUpSQLMigrationConnection(ctx context.Context, conn *sqlx.DB, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.ConnectExternal(conn); err != nil {
@@ -105,6 +131,25 @@ func (m *Migrator) ApplyUpSQLMigration(ctx context.Context, dsn, dir string) ([]
 		_ = d.Close()
 	}()
 	return m.migrateUp(d, dir)
+}
+
+func (m *Migrator) ApplyUpGoMigrationConnection(ctx context.Context, conn *sqlx.DB) ([]*Result, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.ConnectExternal(conn); err != nil {
+		return nil, fmt.Errorf("db: %w", err)
+	}
+	return m.migrateUpGo(d)
+}
+
+func (m *Migrator) ApplyUpGoMigration(ctx context.Context, dsn string) ([]*Result, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.Connect(dsn); err != nil {
+		return nil, fmt.Errorf("db: %w", err)
+	}
+	defer func() {
+		_ = d.Close()
+	}()
+	return m.migrateUpGo(d)
 }
 
 func (m *Migrator) ApplyDownSQLMigrationConnection(ctx context.Context, conn *sqlx.DB, dir string) ([]*Result, error) {
@@ -126,6 +171,25 @@ func (m *Migrator) ApplyDownSQLMigration(ctx context.Context, dsn, dir string) (
 	return m.migrateDown(d, dir)
 }
 
+func (m *Migrator) ApplyDownGoMigrationConnection(ctx context.Context, conn *sqlx.DB) ([]*Result, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.ConnectExternal(conn); err != nil {
+		return nil, fmt.Errorf("db: %w", err)
+	}
+	return m.migrateDownGo(d)
+}
+
+func (m *Migrator) ApplyDownGoMigration(ctx context.Context, dsn string) ([]*Result, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.Connect(dsn); err != nil {
+		return nil, fmt.Errorf("db: %w", err)
+	}
+	defer func() {
+		_ = d.Close()
+	}()
+	return m.migrateDownGo(d)
+}
+
 func (m *Migrator) ApplyRedoSQLMigrationConnection(ctx context.Context, conn *sqlx.DB, dir string) ([]*Result, error) {
 	d := db.NewPostgres(ctx, m.logWriter)
 	if err := d.ConnectExternal(conn); err != nil {
@@ -143,6 +207,25 @@ func (m *Migrator) ApplyRedoSQLMigration(ctx context.Context, dsn, dir string) (
 		_ = d.Close()
 	}()
 	return m.migrateRedo(d, dir)
+}
+
+func (m *Migrator) ApplyRedoGoMigrationConnection(ctx context.Context, conn *sqlx.DB) ([]*Result, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.ConnectExternal(conn); err != nil {
+		return nil, fmt.Errorf("db: %w", err)
+	}
+	return m.migrateRedoGo(d)
+}
+
+func (m *Migrator) ApplyRedoGoMigration(ctx context.Context, dsn string) ([]*Result, error) {
+	d := db.NewPostgres(ctx, m.logWriter)
+	if err := d.Connect(dsn); err != nil {
+		return nil, fmt.Errorf("db: %w", err)
+	}
+	defer func() {
+		_ = d.Close()
+	}()
+	return m.migrateRedoGo(d)
 }
 
 func (m *Migrator) SelectStatusesConnection(ctx context.Context, conn *sqlx.DB) ([]*ResultArchive, error) {
@@ -201,6 +284,35 @@ func (m *Migrator) selectStatuses(d db.DataKeeper) ([]*ResultArchive, error) {
 		res = append(res, &ResultArchive{Version: row.Version, ExecutedAt: row.ExecutedAt, Status: row.Status})
 	}
 	return res, nil
+}
+
+func (m *Migrator) migrateUpGo(d db.DataKeeper) ([]*Result, error) {
+	if err := d.CreateMigratorTable(); err != nil {
+		return nil, fmt.Errorf("create migrator table: %w", err)
+	}
+	versions, err := d.GetVersionsByStatus(db.Error)
+	if err != nil {
+		return nil, err
+	}
+	if len(versions) > 0 {
+		return nil, fmt.Errorf("%w: %d", ErrUnfinishedMigrations, versions[0])
+	}
+	tasks := []*sqlTask{}
+	for _, up := range Exec.getUps() {
+		sql, err := up.f(d.GetDB())
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, &sqlTask{
+			sql:     sql,
+			file:    up.file,
+			version: getVersionByFilename(up.file),
+		})
+	}
+	if len(tasks) == 0 {
+		return nil, nil
+	}
+	return m.executeTasks(d, tasks)
 }
 
 func (m *Migrator) migrateUp(d db.DataKeeper, dir string) ([]*Result, error) {
@@ -275,6 +387,47 @@ func (m *Migrator) migrateUpVersion(d db.DataKeeper, dir string, version int) ([
 	return results, nil
 }
 
+func (m *Migrator) migrateUpGoVersion(d db.DataKeeper, version int) ([]*Result, error) {
+	if err := d.CreateMigratorTable(); err != nil {
+		return nil, fmt.Errorf("create migrator table: %w", err)
+	}
+
+	versions, err := d.GetVersionsByStatus(db.Error)
+	if err != nil {
+		return nil, err
+	}
+	if len(versions) > 0 {
+		return nil, fmt.Errorf("%w: %d", ErrUnfinishedMigrations, versions[0])
+	}
+
+	ups := Exec.getUps()
+	filteredTasks := []*sqlTask{}
+	for _, up := range ups {
+		if getVersionByFilename(up.file) == version {
+			sql, err := up.f(d.GetDB())
+			if err != nil {
+				return nil, err
+			}
+			filteredTasks = append(filteredTasks, &sqlTask{
+				file:    up.file,
+				version: getVersionByFilename(up.file),
+				sql:     sql,
+			})
+			break
+		}
+	}
+
+	if len(filteredTasks) == 0 {
+		return nil, fmt.Errorf("%w: %d", ErrVersionHasNotBeenFound, version)
+	}
+
+	results, err3 := m.executeTasks(d, filteredTasks)
+	if err3 != nil {
+		return nil, fmt.Errorf("execute tasks: %w", err3)
+	}
+	return results, nil
+}
+
 func (m *Migrator) migrateDown(d db.DataKeeper, dir string) ([]*Result, error) {
 	if err := d.CreateMigratorTable(); err != nil {
 		return nil, fmt.Errorf("create migrator table: %w", err)
@@ -285,6 +438,20 @@ func (m *Migrator) migrateDown(d db.DataKeeper, dir string) ([]*Result, error) {
 	}
 	if version > 0 {
 		return m.migrateDownVersion(d, dir, version)
+	}
+	return nil, nil
+}
+
+func (m *Migrator) migrateDownGo(d db.DataKeeper) ([]*Result, error) {
+	if err := d.CreateMigratorTable(); err != nil {
+		return nil, fmt.Errorf("create migrator table: %w", err)
+	}
+	version, err := d.FindLastVersion()
+	if err != nil {
+		return nil, err
+	}
+	if version > 0 {
+		return m.migrateDownGoVersion(d, version)
 	}
 	return nil, nil
 }
@@ -333,6 +500,50 @@ func (m *Migrator) migrateDownVersion(d db.DataKeeper, dir string, version int) 
 	return results, nil
 }
 
+func (m *Migrator) migrateDownGoVersion(d db.DataKeeper, version int) ([]*Result, error) {
+	downs := Exec.getDowns()
+	if len(downs) == 0 {
+		return nil, nil
+	}
+	status, err := d.FindVersionStatusByVersion(version)
+	if err != nil {
+		return nil, err
+	}
+	if status == 0 {
+		return nil, fmt.Errorf("%w: %d", ErrVersionHasNotBeenFound, version)
+	}
+	results := []*Result{}
+	for _, down := range downs {
+		if getVersionByFilename(down.file) != version {
+			continue
+		}
+		result := &Result{
+			Type:    Down,
+			Version: version,
+			Status:  db.Success,
+			File:    down.file,
+		}
+
+		if status == db.Success {
+			sql, err := down.f(d.GetDB())
+			if err != nil {
+				return nil, err
+			}
+			result.SQL = sql
+			if err := d.ExecSQL(sql); err != nil {
+				result.Err = err
+				result.Status = db.Error
+			}
+		}
+		if err := d.DeleteByVersion(version); err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+		break
+	}
+	return results, nil
+}
+
 func (m *Migrator) migrateRedo(d db.DataKeeper, dir string) ([]*Result, error) {
 	result, err := m.migrateDown(d, dir)
 	if err != nil {
@@ -342,6 +553,22 @@ func (m *Migrator) migrateRedo(d db.DataKeeper, dir string) ([]*Result, error) {
 		return nil, nil
 	}
 	resultUp, err1 := m.migrateUpVersion(d, dir, result[len(result)-1].Version)
+	if err1 != nil {
+		return nil, err1
+	}
+	result = append(result, resultUp...)
+	return result, nil
+}
+
+func (m *Migrator) migrateRedoGo(d db.DataKeeper) ([]*Result, error) {
+	result, err := m.migrateDownGo(d)
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, nil
+	}
+	resultUp, err1 := m.migrateUpGoVersion(d, result[len(result)-1].Version)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -472,6 +699,28 @@ func generateSQLFilenames(dir, suffix string) (string, string, error) {
 	}
 }
 
+func generateGoFilename(dir, suffix string) (string, error) {
+	for {
+		prefix := fmt.Sprintf(
+			"%s%d",
+			time.Now().Format("20060102150405"),
+			time.Now().Nanosecond()/int(time.Millisecond),
+		)
+		if suffix != "" {
+			prefix = fmt.Sprintf("%s.%s", prefix, prepareSuffix(suffix))
+		}
+		filename := path.Join(dir, prefix+GoFileExtension)
+		fileExists, err := isFileExist(filename)
+		if err != nil {
+			return "", err
+		}
+		if !fileExists {
+			return filename, nil
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 func prepareSuffix(suffix string) string {
 	str := strings.ReplaceAll(suffix, " ", "_")
 	re := regexp.MustCompile("[^a-zA-Z0-9_]+")
@@ -525,7 +774,8 @@ func findFiles(dir, suffix string) ([]string, error) {
 }
 
 func getVersionByFilename(file string) int {
-	parts := strings.Split(file, ".")
+	f := path.Base(file)
+	parts := strings.Split(f, ".")
 	id, err := strconv.Atoi(parts[0])
 	if err != nil {
 		return 0

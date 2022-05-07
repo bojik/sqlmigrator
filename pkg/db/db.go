@@ -1,6 +1,10 @@
 package db
 
-import "time"
+import (
+	"time"
+
+	"github.com/jmoiron/sqlx"
+)
 
 type Status int
 
@@ -29,6 +33,7 @@ type DataKeeper interface {
 	SelectVersionRow(int) (VersionRow, error)
 	SelectRows() ([]Row, error)
 	ExecSQL(sql string) error
+	GetDB() *sqlx.DB
 }
 
 //nolint:lll

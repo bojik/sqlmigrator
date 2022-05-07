@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bojik/sqlmigrator/internal/config"
+	"github.com/bojik/sqlmigrator/pkg/config"
 	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
