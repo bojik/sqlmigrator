@@ -34,7 +34,7 @@ var (
 			comment on column {{table}}.version is 'migration id';
 			comment on column {{table}}.status is '1 - new, 2 - successful finished, 3 - executed with error';
 			comment on column {{table}}.executed_at is 'date of the last executing attempt';`)
-	sqlSelectNewMigrations = sqlTemplate(`select version from {{table}} where version in (?) and status = ? for update`)
+	sqlSelectNewMigrations = sqlTemplate(`select version from {{table}} where version in (?) and status <> ?`)
 	sqlInsert              = sqlTemplate(`insert into {{table}}(version, status) values(:id, :status) on conflict do nothing`)
 	sqlSelectLock          = sqlTemplate(`select version from {{table}} where version = :id for update`)
 	sqlUpdateStatus        = sqlTemplate(`update {{table}} set status = :status, executed_at = current_timestamp where version = :id`)
