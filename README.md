@@ -54,7 +54,7 @@ import (
 	"os"
 
 	"github.com/bojik/sqlmigrator/pkg/migrator"
-	// необходимо подключить пакет с миграциями
+	// необходимо импортировать пакет с миграциями
 	_ "test-go-mig/m"
 )
 
