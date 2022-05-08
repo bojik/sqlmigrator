@@ -1,0 +1,1 @@
+create table test1(id serial primary key, test varchar);

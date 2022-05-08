@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/bojik/sqlmigrator/cmd/gomigrator/cmd"
 
 func main() {
-	fmt.Println("Done")
+	cmd.Execute()
 }
