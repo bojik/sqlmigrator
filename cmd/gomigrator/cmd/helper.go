@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	config2 "github.com/bojik/sqlmigrator/pkg/config"
+	"github.com/bojik/sqlmigrator/pkg/db"
 	"github.com/bojik/sqlmigrator/pkg/migrator"
 	"github.com/spf13/cobra"
 )
@@ -108,5 +109,12 @@ func formatResults(rs []*migrator.Result) string {
 }
 
 func formatResult(r *migrator.Result) string {
-	return fmt.Sprintf("Migration %s to version %d:\n%s\n", r.Type.String(), r.Version, r.SQL)
+	s := fmt.Sprintf("Migration %s to version %d:\n%s\n", r.Type.String(), r.Version, r.SQL)
+	if r.Status == db.Error {
+		s = fmt.Sprintf("%sError: %s\n", s, r.Err.Error())
+	}
+	if r.Status == db.Success {
+		s = fmt.Sprintf("%sOK\n", s)
+	}
+	return s
 }
