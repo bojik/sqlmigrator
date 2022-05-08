@@ -74,6 +74,9 @@ func (p *Postgres) Close() error {
 }
 
 func (p *Postgres) FindNewMigrations(ids []int) ([]int, error) {
+	if len(ids) == 0 {
+		return []int{}, nil
+	}
 	query, args, err := sqlx.In(sqlSelectNewMigrations.sql(p.table), ids, Processing)
 	if err != nil {
 		return nil, fmt.Errorf("sqlx in: %w", err)
