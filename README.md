@@ -41,3 +41,34 @@ make build # собираем утилиту
 - `gomigrator status` - показывает текущий статус миграций в БД
 - `gomigrator dbversion` - отображает последнюю версию миграции в БД
 
+### Пример использования go миграций
+
+_**Важно!** Импортировать пакет с миграциями в приложение_
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+
+	"github.com/bojik/sqlmigrator/pkg/migrator"
+	// необходимо подключить пакет с миграциями
+	_ "test-go-mig/m"
+)
+
+func main() {
+	m := migrator.New(os.Stdout) // отправляем дебаг информацию в консоль
+	rows, err := m.ApplyUpGoMigration(
+		context.Background(),
+		"postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable",
+	)
+	if err != nil {
+		panic(err.Error())
+	}
+	for _, row := range rows {
+		fmt.Printf("%d %s %s", row.Version, row.Type.String(), row.SQL)
+	}
+}
+```
