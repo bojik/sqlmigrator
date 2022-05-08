@@ -42,4 +42,5 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 	addConfigFlag(statusCmd)
 	addDsnFlag(statusCmd)
+	addTableFlag(statusCmd)
 }

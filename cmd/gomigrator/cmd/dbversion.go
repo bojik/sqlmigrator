@@ -30,4 +30,5 @@ func init() {
 	rootCmd.AddCommand(dbversionCmd)
 	addConfigFlag(dbversionCmd)
 	addDsnFlag(dbversionCmd)
+	addTableFlag(dbversionCmd)
 }

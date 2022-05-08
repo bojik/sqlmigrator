@@ -1,3 +1,4 @@
 dsn: "dsn"
 path: "path"
 type: "sql"
+table: "versions"

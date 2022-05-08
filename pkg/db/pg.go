@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/bojik/sqlmigrator/pkg/config"
 	"github.com/jmoiron/sqlx"
 	// postgresql driver.
 	_ "github.com/lib/pq"
@@ -24,22 +25,22 @@ func NewPostgres(ctx context.Context, log io.Writer) *Postgres {
 }
 
 //nolint:lll
-const (
-	SQLCreateTable         = `create table if not exists dbmigrator_version (version bigint not null primary key, status smallint not null, executed_at timestamp with time zone);`
-	SQLCreateTableIndex    = `create index if not exists status_idx on dbmigrator_version(status);create index if not exists executed_at_idx on dbmigrator_version(executed_at);`
-	SQLCreateTableComments = `comment on table dbmigrator_version is 'dbmigrator migrations';
-			comment on column dbmigrator_version.version is 'migration id';
-			comment on column dbmigrator_version.status is '1 - new, 2 - successful finished, 3 - executed with error';
-			comment on column dbmigrator_version.executed_at is 'date of the last executing attempt';`
-	SQLSelectNewMigrations = `select version from dbmigrator_version where version in (?) and status = ? for update`
-	SQLInsert              = `insert into dbmigrator_version(version, status) values(:id, :status) on conflict do nothing`
-	SQLSelectLock          = `select version from dbmigrator_version where version = :id for update`
-	SQLUpdateStatus        = `update dbmigrator_version set status = :status, executed_at = current_timestamp where version = :id`
-	SQLSelectByStatus      = `select version from dbmigrator_version where status = :status order by version`
-	SQLSelectStatusByID    = `select status from dbmigrator_version where version = :version`
-	SQLSelectLastVersion   = `select version from dbmigrator_version where executed_at = (select max(executed_at) from dbmigrator_version)`
-	SQLDeleteByID          = `delete from dbmigrator_version where version = :version`
-	SQLSelectAll           = `select version, status, COALESCE(executed_at, now()) from dbmigrator_version order by executed_at`
+var (
+	sqlCreateTable         = fmt.Sprintf(`create table if not exists %s (version bigint not null primary key, status smallint not null, executed_at timestamp with time zone);`, config.GetTable())
+	sqlCreateTableIndex    = fmt.Sprintf(`create index if not exists status_idx on %s(status);create index if not exists executed_at_idx on %s(executed_at);`, config.GetTable(), config.GetTable())
+	sqlCreateTableComments = fmt.Sprintf(`comment on table %s is 'dbmigrator migrations';
+			comment on column %s.version is 'migration id';
+			comment on column %s.status is '1 - new, 2 - successful finished, 3 - executed with error';
+			comment on column %s.executed_at is 'date of the last executing attempt';`, config.GetTable(), config.GetTable(), config.GetTable(), config.GetTable())
+	sqlSelectNewMigrations = fmt.Sprintf(`select version from %s where version in (?) and status = ? for update`, config.GetTable())
+	sqlInsert              = fmt.Sprintf(`insert into %s(version, status) values(:id, :status) on conflict do nothing`, config.GetTable())
+	sqlSelectLock          = fmt.Sprintf(`select version from %s where version = :id for update`, config.GetTable())
+	sqlUpdateStatus        = fmt.Sprintf(`update %s set status = :status, executed_at = current_timestamp where version = :id`, config.GetTable())
+	sqlSelectByStatus      = fmt.Sprintf(`select version from %s where status = :status order by version`, config.GetTable())
+	sqlSelectStatusByID    = fmt.Sprintf(`select status from %s where version = :version`, config.GetTable())
+	sqlSelectLastVersion   = fmt.Sprintf(`select version from %s where executed_at = (select max(executed_at) from dbmigrator_version)`, config.GetTable())
+	sqlDeleteByID          = fmt.Sprintf(`delete from %s where version = :version`, config.GetTable())
+	sqlSelectAll           = fmt.Sprintf(`select version, status, COALESCE(executed_at, now()) from %s order by executed_at`, config.GetTable())
 )
 
 func (p *Postgres) Connect(dsn string) error {
@@ -71,7 +72,7 @@ func (p *Postgres) Close() error {
 }
 
 func (p *Postgres) FindNewMigrations(ids []int) ([]int, error) {
-	query, args, err := sqlx.In(SQLSelectNewMigrations, ids, Processing)
+	query, args, err := sqlx.In(sqlSelectNewMigrations, ids, Processing)
 	if err != nil {
 		return nil, fmt.Errorf("sqlx in: %w", err)
 	}
@@ -96,18 +97,18 @@ func (p *Postgres) FindNewMigrations(ids []int) ([]int, error) {
 }
 
 func (p *Postgres) CreateMigratorTable() error {
-	p.writeLog("sql: " + SQLCreateTable)
-	if _, err := p.db.ExecContext(p.ctx, SQLCreateTable); err != nil {
+	p.writeLog("sql: " + sqlCreateTable)
+	if _, err := p.db.ExecContext(p.ctx, sqlCreateTable); err != nil {
 		return fmt.Errorf("create table: %w", err)
 	}
 
-	p.writeLog("sql: " + SQLCreateTableIndex)
-	if _, err := p.db.ExecContext(p.ctx, SQLCreateTableIndex); err != nil {
+	p.writeLog("sql: " + sqlCreateTableIndex)
+	if _, err := p.db.ExecContext(p.ctx, sqlCreateTableIndex); err != nil {
 		return err
 	}
 
-	p.writeLog("sql: " + SQLCreateTableComments)
-	if _, err := p.db.ExecContext(p.ctx, SQLCreateTableComments); err != nil {
+	p.writeLog("sql: " + sqlCreateTableComments)
+	if _, err := p.db.ExecContext(p.ctx, sqlCreateTableComments); err != nil {
 		return fmt.Errorf("comment on: %w", err)
 	}
 	return nil
@@ -122,8 +123,8 @@ func (p *Postgres) SelectVersionRow(id int) (VersionRow, error) {
 }
 
 func (p *Postgres) FindLastVersion() (int, error) {
-	p.writeLog("sql: " + SQLSelectLastVersion)
-	rows, err := p.db.QueryContext(p.ctx, SQLSelectLastVersion)
+	p.writeLog("sql: " + sqlSelectLastVersion)
+	rows, err := p.db.QueryContext(p.ctx, sqlSelectLastVersion)
 	if err != nil {
 		return 0, err
 	}
@@ -141,16 +142,16 @@ func (p *Postgres) FindLastVersion() (int, error) {
 }
 
 func (p *Postgres) DeleteByVersion(version int) error {
-	p.writeLog("sql: " + SQLDeleteByID)
-	if _, err := p.db.NamedExecContext(p.ctx, SQLDeleteByID, map[string]interface{}{"version": version}); err != nil {
+	p.writeLog("sql: " + sqlDeleteByID)
+	if _, err := p.db.NamedExecContext(p.ctx, sqlDeleteByID, map[string]interface{}{"version": version}); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (p *Postgres) FindVersionStatusByVersion(version int) (Status, error) {
-	p.writeLog("sql: " + SQLSelectStatusByID)
-	rows, err := p.db.NamedQueryContext(p.ctx, SQLSelectStatusByID, map[string]interface{}{"version": version})
+	p.writeLog("sql: " + sqlSelectStatusByID)
+	rows, err := p.db.NamedQueryContext(p.ctx, sqlSelectStatusByID, map[string]interface{}{"version": version})
 	if err != nil {
 		return 0, err
 	}
@@ -167,8 +168,8 @@ func (p *Postgres) FindVersionStatusByVersion(version int) (Status, error) {
 }
 
 func (p *Postgres) SelectRows() ([]Row, error) {
-	p.writeLog("sql: " + SQLSelectAll)
-	rows, err := p.db.QueryContext(p.ctx, SQLSelectAll)
+	p.writeLog("sql: " + sqlSelectAll)
+	rows, err := p.db.QueryContext(p.ctx, sqlSelectAll)
 	if err != nil {
 		return nil, err
 	}
@@ -233,8 +234,8 @@ func (p *Postgres) ExecSQL(sql string) error {
 }
 
 func (p *Postgres) GetVersionsByStatus(status Status) ([]int, error) {
-	p.writeLog("sql: " + SQLSelectByStatus)
-	rows, err := p.db.NamedQueryContext(p.ctx, SQLSelectByStatus, map[string]interface{}{"status": status})
+	p.writeLog("sql: " + sqlSelectByStatus)
+	rows, err := p.db.NamedQueryContext(p.ctx, sqlSelectByStatus, map[string]interface{}{"status": status})
 	if err != nil {
 		return nil, err
 	}
@@ -253,11 +254,11 @@ func (p *Postgres) GetVersionsByStatus(status Status) ([]int, error) {
 }
 
 func (v *versionRow) Insert() error {
-	_, err := v.tx.NamedExec(SQLInsert, map[string]interface{}{"id": v.id, "status": Processing})
+	_, err := v.tx.NamedExec(sqlInsert, map[string]interface{}{"id": v.id, "status": Processing})
 	if err != nil {
 		return fmt.Errorf("init: %w", err)
 	}
-	_, err = v.tx.NamedExec(SQLSelectLock, map[string]interface{}{"id": v.id})
+	_, err = v.tx.NamedExec(sqlSelectLock, map[string]interface{}{"id": v.id})
 	if err != nil {
 		return fmt.Errorf("lock: %w", err)
 	}
@@ -265,7 +266,7 @@ func (v *versionRow) Insert() error {
 }
 
 func (v *versionRow) SetStatus(status Status) error {
-	if _, err := v.tx.NamedExec(SQLUpdateStatus, map[string]interface{}{"id": v.id, "status": status}); err != nil {
+	if _, err := v.tx.NamedExec(sqlUpdateStatus, map[string]interface{}{"id": v.id, "status": status}); err != nil {
 		return fmt.Errorf("update status: %w", err)
 	}
 	return nil

@@ -18,6 +18,7 @@ const (
 	FlagFormat  = config2.KeyFormat
 	FlagPath    = config2.KeyPath
 	FlagDsn     = config2.KeyDsn
+	FlagTable   = config2.KeyTable
 )
 
 func loadConfigData(cmd *cobra.Command) error {
@@ -78,6 +79,15 @@ func addDsnFlag(command *cobra.Command) {
 		"d",
 		"",
 		"DSN to database",
+	)
+}
+
+func addTableFlag(command *cobra.Command) {
+	command.Flags().StringP(
+		FlagTable,
+		"m",
+		"",
+		"Table name for meta information",
 	)
 }
 

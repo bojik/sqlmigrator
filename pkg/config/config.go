@@ -9,6 +9,7 @@ const (
 	KeyDsn    = "dsn"
 	KeyPath   = "path"
 	KeyFormat = "type"
+	KeyTable  = "table"
 )
 
 const (
@@ -37,6 +38,7 @@ func (c *Config) init() {
 	c.v.SetDefault(KeyDsn, "")
 	c.v.SetDefault(KeyPath, "")
 	c.v.SetDefault(KeyFormat, "")
+	c.v.SetDefault(KeyTable, "dbmigrator_version")
 }
 
 func (c *Config) Load(file string, flags *pflag.FlagSet) error {
@@ -128,4 +130,12 @@ func (c *Config) GetType() string {
 
 func GetType() string {
 	return cfg.GetType()
+}
+
+func (c *Config) GetTable() string {
+	return c.v.GetString(KeyTable)
+}
+
+func GetTable() string {
+	return cfg.GetTable()
 }

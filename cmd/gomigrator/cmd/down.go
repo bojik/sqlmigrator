@@ -31,4 +31,5 @@ func init() {
 	addPathFlag(downCmd)
 	addDsnFlag(downCmd)
 	addTypeFlag(downCmd)
+	addTableFlag(downCmd)
 }
