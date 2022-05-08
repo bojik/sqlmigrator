@@ -30,6 +30,5 @@ func init() {
 	addConfigFlag(upCmd)
 	addPathFlag(upCmd)
 	addDsnFlag(upCmd)
-	addTypeFlag(upCmd)
 	addTableFlag(upCmd)
 }

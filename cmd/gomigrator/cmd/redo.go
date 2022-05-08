@@ -34,6 +34,5 @@ func init() {
 	addConfigFlag(redoCmd)
 	addPathFlag(redoCmd)
 	addDsnFlag(redoCmd)
-	addTypeFlag(redoCmd)
 	addTableFlag(redoCmd)
 }
